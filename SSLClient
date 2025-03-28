@@ -1,0 +1,42 @@
+
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.KeyStore;
+
+public class SSLClient {
+    public static void main(String[] args) throws Exception {
+        String host = "localhost";
+        int port = 8443;
+
+        // Load client keystore
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        try (FileInputStream keyStoreStream = new FileInputStream("client.keystore")) {
+            keyStore.load(keyStoreStream, "password".toCharArray());
+        }
+
+        // Initialize key manager factory
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+        keyManagerFactory.init(keyStore, "password".toCharArray());
+
+        // Load truststore
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        try (FileInputStream trustStoreStream = new FileInputStream("client.truststore")) {
+            trustStore.load(trustStoreStream, "password".toCharArray());
+        }
+
+        // Initialize trust manager factory
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+        trustManagerFactory.init(trustStore);
+
+        // Create SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+        SSLSocket socket = (SSLSocket) socketFactory.createSocket(host, port);
+
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        writer.write("Hello, secure server!\n");
+        writer.flush();
+    }
+}
